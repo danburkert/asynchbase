@@ -77,6 +77,7 @@ import org.hbase.async.PutRequest;
 import org.hbase.async.ScanFilter;
 import org.hbase.async.Scanner;
 import org.hbase.async.TableNotFoundException;
+import org.hbase.async.TimestampsFilter;
 
 import org.hbase.async.test.Common;
 
@@ -734,6 +735,33 @@ final public class TestIntegration {
     kvs = rows.get(1);
     assertSizeIs(1, kvs);   // KV from "fl2":
     assertEq("v4", kvs.get(0).value());
+  }
+
+  /** Simple timestamps filter list tests.  */
+  @Test
+  public void timestampsFilter() throws Exception {
+    client.setFlushInterval(FAST_FLUSH);
+    final byte[] tableBytes = Bytes.UTF8(table);
+    final byte[] familyBytes = Bytes.UTF8(family);
+    final byte[] qualifier = Bytes.UTF8("q");
+    final PutRequest put1 =
+      new PutRequest(tableBytes, Bytes.UTF8("tf1"), familyBytes, qualifier, Bytes.UTF8("v1"), 1L);
+    final PutRequest put2 =
+      new PutRequest(tableBytes, Bytes.UTF8("tf2"), familyBytes, qualifier, Bytes.UTF8("v2"), 2L);
+    final PutRequest put3 =
+      new PutRequest(tableBytes, Bytes.UTF8("tf3"), familyBytes, qualifier, Bytes.UTF8("v3"), 3L);
+    Deferred.group(client.put(put1), client.put(put2), client.put(put3)).join();
+    final Scanner scanner = client.newScanner(table);
+    scanner.setFamily(family);
+    scanner.setStartKey(Bytes.UTF8("tf"));
+    scanner.setStopKey(Bytes.UTF8("tf4"));
+    scanner.setFilter(new TimestampsFilter(1L, 3L));
+    final ArrayList<ArrayList<KeyValue>> rows = scanner.nextRows().join();
+    assertSizeIs(2, rows);
+    assertSizeIs(1, rows.get(0));
+    assertEq("v1", rows.get(0).get(0).value());
+    assertSizeIs(1, rows.get(1));
+    assertEq("v3", rows.get(1).get(0).value());
   }
 
   @Test

@@ -97,6 +97,7 @@ asynchbase_SOURCES := \
 	src/Scanner.java	\
 	src/SingletonList.java	\
 	src/TableNotFoundException.java	\
+	src/TimestampsFilter.java	\
 	src/UnknownRowLockException.java	\
 	src/UnknownScannerException.java	\
 	src/VersionMismatchException.java	\
